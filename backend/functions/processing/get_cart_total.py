@@ -48,7 +48,7 @@ def lambda_handler(event, context):
             inventory_file_path = i_path
             print("inventory db file already exists")
             break
-        
+
     if inventory_file_path is None:
         s3 = boto3.client('s3')
         print("Downloading inventory file.")
@@ -58,7 +58,7 @@ def lambda_handler(event, context):
             Filename=f"/tmp/{INVENTORY_FILE}"
         )
         inventory_file_path = f"/tmp/{INVENTORY_FILE}"
-        
+
 
     conn = create_connection(inventory_file_path)
     if conn is None:
@@ -69,17 +69,17 @@ def lambda_handler(event, context):
         cart_items = []
         if isinstance(cart, list):
             cart_items = cart
-        
+
         elif isinstance(cart, dict):
             for k, v in cart.items():
                 cart_items.append({ "itemId": v["itemId"], "quantity": v["quantity"] })
         print(cart_items)
-        
+
         for obj in cart_items:
             item_id = obj["itemId"]
             qty = int(obj["quantity"])
             try:
-                res = cur.execute("SELECT itemId, price, quantity FROM inventory WHERE itemId = " + item_id + ";")
+                res = cur.execute("SELECT itemId, price, quantity FROM inventory WHERE itemId = %s;", (item_id,))
                 if res is not None:
                     item_id, price, quantity = res.fetchone()
                     print(f"Found item: {item_id}. Price: {price}, Quantity: {quantity}.")
@@ -96,17 +96,17 @@ def lambda_handler(event, context):
                     'statusCode': 200,
                     'body': json.dumps(res)
                 } 
-                
+
             if quantity < qty:
                 missing[obj] = qty - quantity
                 qty = quantity
-                
+
             total = total + (qty*price)
-            
+
         res = {"status": "ok", "total": float(total), "missing": missing}  
-    
+
     print(f"return value: {json.dumps(res)}")
-    
+
     return {
         'statusCode': 200,
         'body': json.dumps(res)
