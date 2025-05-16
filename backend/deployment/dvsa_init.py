@@ -103,6 +103,7 @@ def lambda_handler(event, context):
 
 
 # generate website files with current configuration
+import tempfile
 def createWebsite():
   with open('dist_s3/bundle.js') as f:
     FileText = f.read()
@@ -112,18 +113,19 @@ def createWebsite():
   FileText = re.sub("<ServiceEndpoint>", os.environ["ORDER_API"], FileText)
   FileText = re.sub("<ServerlessDeploymentBucketName>", os.environ["CLIENT_BUCKET"], FileText)
 
-  with open('/tmp/bundle.js', "w") as f:
-    f.write(FileText)
-
   bucket = s3.Bucket(os.environ["CLIENT_BUCKET"])
   bucket.objects.all().delete()
-  s3.meta.client.upload_file('/tmp/bundle.js', os.environ["CLIENT_BUCKET"], 'bundle.js', ExtraArgs={'ContentType': "application/javascript"})
+  with tempfile.TemporaryFile(mode="w+b") as tmp:
+    tmp.write(FileText.encode('utf-8'))
+    tmp.seek(0)
+    s3.meta.client.upload_fileobj(tmp, os.environ["CLIENT_BUCKET"], 'bundle.js', ExtraArgs={'ContentType': "application/javascript"})
+
   s3.meta.client.upload_file('dist_s3/styles.css', os.environ["CLIENT_BUCKET"], 'styles.css', ExtraArgs={'ContentType': "text/css"})
   s3.meta.client.upload_file('dist_s3/index.html', os.environ["CLIENT_BUCKET"], 'index.html', ExtraArgs={'ContentType': "text/html; charset=utf-8"})
-  # Upload images folder
   for root, dirs, files in os.walk('dist_s3/images'):
     for file in files:
       s3.meta.client.upload_file('dist_s3/images/'+file, os.environ["CLIENT_BUCKET"], 'images/'+file)
+  logger.debug("bundle.js was replaced")
   logger.debug("bundle.js was replaced")
 
 
