@@ -25,7 +25,7 @@ export class CartPage extends React.Component {
         let cart    = localStorage.getItem('cart') ? localStorage.getItem('cart') : null;
         cart = cart ? JSON.parse(cart) : cart;
         let cartItems = {};
-        if(cart && cart.length) {
+        if(cart?.length) {
             cart.forEach(element => {
                 cartItems[element.id] = element.amount;
             });
@@ -51,7 +51,7 @@ export class CartPage extends React.Component {
                 return response.json();
             }).then(function(err, data) {
 
-                if(data && data.status == 'ok') {
+                if(data?.status == 'ok') {
                     self.setState({toShipping: false});
                     if(opts.action == 'new') {
                         localStorage.setItem('order-id', data['order-id']);
