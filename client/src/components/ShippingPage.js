@@ -29,19 +29,15 @@ export class ShippingPage extends React.Component {
             var userData = JSON.parse(localStorage.getItem("AccountData"));
             if (typeof userData["email"] != "unidentified" ) {
                 shippingInfo["email"] = userData["email"]
-                this.setState({ shippingInfo: shippingInfo })
             }
              if (typeof userData["address"] != "unidentified" ) {
                     shippingInfo["address"] = userData["address"]
-                this.setState({ shippingInfo: shippingInfo })
             }
              if (typeof userData["phone"] != "unidentified" ) {
                     shippingInfo["phone"] = userData["phone"]
-                this.setState({ shippingInfo: shippingInfo })
             }
              if (typeof userData["fullname"] != "unidentified" ) {
                    shippingInfo["name"] = userData["fullname"]
-                this.setState({ shippingInfo: shippingInfo })
             }
         }
         catch (err) {
@@ -50,41 +46,6 @@ export class ShippingPage extends React.Component {
         }
         //console.log(this.state.shippingInfo);
     }
-
-
-    handleChange = input => event => {
-        let shippingInfo = {...this.state.shippingInfo};
-        shippingInfo[input] = event.target.value;
-        this.setState({ shippingInfo: shippingInfo })
-    }
-
-    handleSubmit = () => {
-        let self = this;
-        self.setState({ isLoading: true });
-        self.setState({submitted: true});
-        const orderId = localStorage.getItem('order-id');
-        let opts = {
-            'action': 'shipping',
-            'order-id': orderId,
-            'data': this.state.shippingInfo 
-        };
-
-        API.callApi(opts)
-        .then(function(response) {
-            return response.json();
-        }).then(function(data) {
-            if(data && data.status == 'ok') {
-                self.setState({ isLoading: false });
-                //if response is ok move to shipping page
-                self.setState({toBilling: true});
-            } else {
-                self.setState ({ isLoading: false });
-                //handle response error
-            }
-        });
-    }
-    render(){
-        if (this.state.toBilling === true) {
             return <Redirect to='/billing' />
         }
         return(
