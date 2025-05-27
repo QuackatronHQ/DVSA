@@ -70,7 +70,7 @@ def main():
     if len(stack_sum) == 0:
         print(f"[X] Could not find ANY stack in: {account_id}/{aws_region}. Maybe a different region?")
         return
-    
+
     else:
         identified_stack = None
         available_stacks = []
@@ -82,14 +82,14 @@ def main():
                 available_stacks.append(f"\t. {stack['StackName']}\n")
             else:
                 pass
-            
+
         if identified_stack is None:
             print(f"[X] Could not identify stack: {stack_name} in: {account_id}/{aws_region}")
             print(f"[?] Could be any of those:\n {''.join(available_stacks)}")
             return
-        
+
         else:
-              print(f"[-] Collecting stack info... ")
+              print("[-] Collecting stack info... ")
               try:
                   resources = cf.list_stack_resources(StackName=identified_stack).get("StackResourceSummaries", [])
               except Exception as e:
@@ -97,7 +97,7 @@ def main():
 
               if not build_be_stack(resources):
                   return
-              
+
               else:
                   print("client-connect completed successfully!")
     return
