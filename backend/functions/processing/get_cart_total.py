@@ -3,11 +3,12 @@ import json
 import decimal
 import sqlite3
 import os
+import tempfile
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 
 INVENTORY_FILE = "inventory.db"
-INVENTORY_PATH = [INVENTORY_FILE, f"/tmp/{INVENTORY_FILE}"]
+INVENTORY_PATH = [INVENTORY_FILE]
 
 
 
@@ -48,17 +49,22 @@ def lambda_handler(event, context):
             inventory_file_path = i_path
             print("inventory db file already exists")
             break
-        
+
     if inventory_file_path is None:
         s3 = boto3.client('s3')
         print("Downloading inventory file.")
-        s3.download_file(
-            Bucket=os.environ("CLIENT_BUCKET"),
-            Key=f"admin/{INVENTORY_FILE}",
-            Filename=f"/tmp/{INVENTORY_FILE}"
-        )
-        inventory_file_path = f"/tmp/{INVENTORY_FILE}"
-        
+        with tempfile.TemporaryFile() as tmp:
+            s3.download_fileobj(
+                Bucket=os.environ("CLIENT_BUCKET"),
+                Key=f"admin/{INVENTORY_FILE}",
+                Fileobj=tmp
+            )
+            tmp.seek(0)
+            inventory_file_path = tmp
+                Fileobj=tmp
+            )
+            tmp.flush()
+            inventory_file_path = tmp.name
 
     conn = create_connection(inventory_file_path)
     if conn is None:
@@ -69,12 +75,12 @@ def lambda_handler(event, context):
         cart_items = []
         if isinstance(cart, list):
             cart_items = cart
-        
+
         elif isinstance(cart, dict):
             for k, v in cart.items():
                 cart_items.append({ "itemId": v["itemId"], "quantity": v["quantity"] })
         print(cart_items)
-        
+
         for obj in cart_items:
             item_id = obj["itemId"]
             qty = int(obj["quantity"])
@@ -96,17 +102,70 @@ def lambda_handler(event, context):
                     'statusCode': 200,
                     'body': json.dumps(res)
                 } 
-                
+
             if quantity < qty:
                 missing[obj] = qty - quantity
                 qty = quantity
-                
+
             total = total + (qty*price)
-            
+
         res = {"status": "ok", "total": float(total), "missing": missing}  
-    
+
     print(f"return value: {json.dumps(res)}")
-    
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps(res)
+    }
+            }
+
+    conn = create_connection(inventory_file_path)
+    if conn is None:
+        res = {"status": "error", "message": "could not connect to inventory db."}
+    else:
+        cur = conn.cursor()
+
+        cart_items = []
+        if isinstance(cart, list):
+            cart_items = cart
+
+        elif isinstance(cart, dict):
+            for k, v in cart.items():
+                cart_items.append({ "itemId": v["itemId"], "quantity": v["quantity"] })
+        print(cart_items)
+
+        for obj in cart_items:
+            item_id = obj["itemId"]
+            qty = int(obj["quantity"])
+            try:
+                res = cur.execute("SELECT itemId, price, quantity FROM inventory WHERE itemId = " + item_id + ";")
+                if res is not None:
+                    item_id, price, quantity = res.fetchone()
+                    print(f"Found item: {item_id}. Price: {price}, Quantity: {quantity}.")
+                else:
+                    res = {"status": "error", "message": "Item could not be found in database"}  
+                    return {
+                        'statusCode': 200,
+                        'body': json.dumps(res)
+                    } 
+            except Exception as e:
+                print(e)
+                res = {"status": "error", "message": "Item could not be found in database"}  
+                return {
+                    'statusCode': 200,
+                    'body': json.dumps(res)
+                } 
+
+            if quantity < qty:
+                missing[obj] = qty - quantity
+                qty = quantity
+
+            total = total + (qty*price)
+
+        res = {"status": "ok", "total": float(total), "missing": missing}  
+
+    print(f"return value: {json.dumps(res)}")
+
     return {
         'statusCode': 200,
         'body': json.dumps(res)
