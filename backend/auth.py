@@ -1,5 +1,7 @@
 
 def sum(a, b):
-    assert a > 0
-    assert b > 0
+    if a <= 0:
+        raise AssertionError
+    if b <= 0:
+        raise AssertionError
     return eval("a + b")
