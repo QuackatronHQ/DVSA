@@ -5,6 +5,7 @@ import os
 import datetime
 import decimal
 import uuid
+import tempfile
 
 
 def lambda_handler(event, context):
@@ -26,27 +27,17 @@ def lambda_handler(event, context):
     userId = order.split("_")[1].replace(".raw", "")
 
     s3 = boto3.client('s3')
-    # download file to /tmp
-    
-    download_path = f'/tmp/{str(uuid.uuid4())}.txt'
-    date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
-    os.system(f'echo -e "\t----------------------\n\t\tDate: {date}" >> ' + download_path)
-
-    # print download_path
     try:
-        s3.download_file(bucket, key, download_path)
-
-        # delete original file
-        #s3.delete_object(Bucket=bucket, Key=key)
-        # upload new file (txt)
-        s3.upload_file(download_path, bucket, key.replace(".raw", ".txt"))
-
-        # get signed url
-        signed_link = s3.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': key.replace(".raw", ".txt")},
-                                                ExpiresIn=259200)
+        with tempfile.TemporaryFile() as tmp:
+            date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+            tmp.write(f"\t----------------------\n\t\tDate: {date}\n".encode())
+            s3.download_fileobj(bucket, key, tmp)
+            tmp.seek(0)
+            s3.upload_fileobj(tmp, bucket, key.replace(".raw", ".txt"))
+            signed_link = s3.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': key.replace(".raw", ".txt")},
+                                                    ExpiresIn=259200)
     except Exception as e:
         print(e)
-    # GET ITEMS FOR ORDER
     dynamodb = boto3.resource('dynamodb')
     order_table = dynamodb.Table(os.environ["ORDERS_TABLE"])
     response = order_table.get_item(
@@ -72,13 +63,13 @@ def lambda_handler(event, context):
             account_id = sts.get_caller_identity()["Account"]
             secmail = "dvsa.{}.{}@1secmail.com".format(account_id, ''.join(userId.split('-')))
 
-            # create email
             subject = 'Your DVSA Order: Confirmed'.format(token)
             email_msg = \
                 '''
                 Dear {}, <br><br>
 
                 Your order: <b>{}</b> has been <b>confirmed</b> and will be sent to: <br>
+                '''
 
                 {}
 
