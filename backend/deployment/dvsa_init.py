@@ -129,8 +129,6 @@ def createWebsite():
 
 # send response to cloudformation
 def to_cf_obj(event, context):
-  cf_obj = {}
-  cf_obj["url"] = event['ResponseURL']
   responseBody = {}
   responseBody['Status'] = "SUCCESS"
   responseBody['Reason'] = 'See the details in CloudWatch Log Stream: ' + context.log_stream_name
@@ -139,10 +137,16 @@ def to_cf_obj(event, context):
   responseBody['RequestId'] = event.get('RequestId')
   responseBody['LogicalResourceId'] = event.get('LogicalResourceId')
   responseBody['Data'] = {}
-  cf_obj["data"] = json.dumps(responseBody)
-  cf_obj["headers"] = {
-    'content-type': '',
-    'content-length': str(len(cf_obj["data"]))
+  cf_obj = {
+    "url": event['ResponseURL'],
+    "data": json.dumps(responseBody),
+    "headers": {
+      'content-type': '',
+      'content-length': str(len(json.dumps(responseBody)))
+    }
+  }
+  return cf_obj
+    }
   }
   return cf_obj
 
