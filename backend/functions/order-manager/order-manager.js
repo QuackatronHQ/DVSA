@@ -1,4 +1,3 @@
-const serialize = require('node-serialize');
 const { LambdaClient, InvokeCommand } = require("@aws-sdk/client-lambda");
 const { CognitoIdentityProviderClient, AdminGetUserCommand } = require("@aws-sdk/client-cognito-identity-provider");
 const jose = require('node-jose');
@@ -7,8 +6,18 @@ const jose = require('node-jose');
 
 exports.handler = (event, context, callback) => {
     // console.log(JSON.stringify(event));
-    var req = serialize.unserialize(event.body); 
-    var headers = serialize.unserialize(event.headers);
+    var req;
+    try {
+        req = JSON.parse(event.body);
+    } catch (err) {
+        return callback(err);
+    }
+    var headers;
+    try {
+        headers = typeof event.headers === 'string' ? JSON.parse(event.headers) : event.headers;
+    } catch (err) {
+        return callback(err);
+    }
     var auth_header = headers.Authorization || headers.authorization;
     var token_sections = auth_header.split('.');
     var auth_data = jose.util.base64url.decode(token_sections[1]);
