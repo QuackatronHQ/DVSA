@@ -69,14 +69,14 @@ def lambda_handler(event, context):
         status = int(json.dumps(response["Item"]['orderStatus'], cls=DecimalEncoder))
         if status < 120:
             res = { "status": "err", "msg": "order was not completed" }
-            
+
         elif status>120:
             res =  { "status": "err", "msg": "order already processed" }
-        
+
         else:
             # CREATE RECEIPTS TXT FILE
             got_items = response["Item"]["itemList"]
-                
+
             # getting item names from inventory
             inventory_file_path = None
             for i_path in INVENTORY_PATH:
@@ -84,7 +84,7 @@ def lambda_handler(event, context):
                     inventory_file_path = i_path
                     print("inventory db file already exists")
                     break
-                
+
             if inventory_file_path is None:
                 s3 = boto3.client('s3')
                 print("Downloading inventory file.")
@@ -105,11 +105,11 @@ def lambda_handler(event, context):
                     item = {"itemId": k, "quantity": got_items[k]}
                     item_id = item["itemId"]
                     qty = item["quantity"]
-                    res = cur.execute("SELECT itemId, name, price FROM inventory WHERE itemId = " + item_id + ";")
+                    res = cur.execute("SELECT itemId, name, price FROM inventory WHERE itemId = %s;", (item_id,))
                     item_id, price, name = res.fetchone()
                     print(f"Found item: {item}. Name: {name}, Quantity: {qty}")
                     items = items + f"\t\t{name}\t\t{price} ({qty})\n\t\t"           
-            
+
             ts = response["Item"]["paymentTS"]
             address = response["Item"]["address"]
             try: 
@@ -123,22 +123,22 @@ def lambda_handler(event, context):
 
             amount = str(response["Item"]["totalAmount"])
             token = response["Item"]["confirmationToken"]
-            
+
             msg = \
             '''
                 Order: {},
-                
+
                 To: 
                     {},
                     {}
-                
+
                 Items:
                 {}
-                
+
                 Total: ${}
 
             '''.format(token, name, to, items, amount)
-           
+
             # UPLOAD TXT RECEIPT TO S3
             os.write(receipt, str.encode(msg))
             s3 = boto3.resource('s3')
@@ -148,7 +148,7 @@ def lambda_handler(event, context):
             d = datetime.utcfromtimestamp(ts).strftime('%d')
             obj_name = "{}/{}/{}/{}_{}.raw".format(y,m,d, orderId, userId)
             s3.Bucket(bucket).upload_file("/tmp/{}.raw".format(orderId), obj_name)
-            
+
             # UPDATE ORDER STATUS
             update_expr = 'SET {} = :orderStatus'.format("orderStatus")
             response = order_table.update_item(
