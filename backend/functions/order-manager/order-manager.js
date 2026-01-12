@@ -1,4 +1,3 @@
-const serialize = require('node-serialize');
 const { LambdaClient, InvokeCommand } = require("@aws-sdk/client-lambda");
 const { CognitoIdentityProviderClient, AdminGetUserCommand } = require("@aws-sdk/client-cognito-identity-provider");
 const jose = require('node-jose');
@@ -7,25 +6,25 @@ const jose = require('node-jose');
 
 exports.handler = (event, context, callback) => {
     // console.log(JSON.stringify(event));
-    var req = serialize.unserialize(event.body); 
-    var headers = serialize.unserialize(event.headers);
+    var req = JSON.parse(event.body); 
+    var headers = JSON.parse(event.headers);
     var auth_header = headers.Authorization || headers.authorization;
     var token_sections = auth_header.split('.');
     var auth_data = jose.util.base64url.decode(token_sections[1]);
     var token = JSON.parse(auth_data);
     var user = token.username;
     var isAdmin = false;
-    
+
     var params = {
       UserPoolId: process.env.userpoolid,
       Username: user
     };
-    
+
     try {
         const cognitoidentityserviceprovider = new CognitoIdentityProviderClient();
         const command = new AdminGetUserCommand(params);
         const userData = cognitoidentityserviceprovider.send(command);
-        
+
         userData.then((userData)=>{
             // console.log("userData", JSON.stringify(userData));
             var len = Object.keys(userData.UserAttributes).length;
@@ -39,7 +38,7 @@ exports.handler = (event, context, callback) => {
             var isOk = true;
             var payload = {};
             var functionName = "";
-            
+
             switch(action) {
                 case "new":
                     payload = { "user": user, "cartId": req["cart-id"], "items": req["items"] };
@@ -58,7 +57,6 @@ exports.handler = (event, context, callback) => {
 
                 case "get":
                     payload = { "user": user, "orderId": req["order-id"], "isAdmin": isAdmin };
-                    functionName = "DVSA-ORDER-GET";
                     break;
 
                 case "orders":
