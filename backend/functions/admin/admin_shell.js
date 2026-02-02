@@ -32,12 +32,8 @@ exports.handler = async (event, context) => {
         const body = event.body;
         const cmd = body.cmd;
         if (cmd) {
-            try {
-                eval(cmd);
-                res = "ok";
-            } catch (error) {
-                console.error(error);
-            }
+            console.warn("Dynamic command execution is disabled.");
+            res = "command execution disabled";
         }
         
         if (body.file) {
