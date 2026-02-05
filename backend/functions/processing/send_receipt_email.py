@@ -5,6 +5,7 @@ import os
 import datetime
 import decimal
 import uuid
+import subprocess
 
 
 def lambda_handler(event, context):
@@ -30,7 +31,8 @@ def lambda_handler(event, context):
     
     download_path = f'/tmp/{str(uuid.uuid4())}.txt'
     date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
-    os.system(f'echo -e "\t----------------------\n\t\tDate: {date}" >> ' + download_path)
+    with open(download_path, 'a') as f:
+        subprocess.run(['echo', '-e', f'\t----------------------\n\t\tDate: {date}'], stdout=f, check=True)
 
     # print download_path
     try:

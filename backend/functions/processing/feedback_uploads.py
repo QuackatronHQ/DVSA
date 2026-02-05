@@ -2,11 +2,12 @@ import json
 import time
 import boto3
 import os
+import subprocess
 from botocore.exceptions import ClientError
 from botocore.client import Config
 import uuid
 from urllib import parse
-
+import random
 
 
 def lambda_handler(event, context):
@@ -31,8 +32,7 @@ def lambda_handler(event, context):
         if not is_safe(filename):
             return {"status": "error", "message": "invalid filename"}
             
-        os.system("touch /tmp/{} /tmp/{}.txt".format(filename, filename))
-
+        subprocess.run(["touch", f"/tmp/{filename}", f"/tmp/{filename}.txt"], check=True)
 
     else:
         return {"status": "ok", "message": "Thank you."}
