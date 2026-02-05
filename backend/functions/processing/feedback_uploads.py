@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from botocore.client import Config
 import uuid
 from urllib import parse
-
+import random
 
 
 def lambda_handler(event, context):
