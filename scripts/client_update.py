@@ -31,7 +31,7 @@ def update_from_bucket_name(session, bucket, entire_folder):
                           res = s3.upload_file(f"{dist_dir}/{key}", bucket, key)
                           print("OK")
                       except Exception as e:
-                          print(f"FAILED")
+                          print("FAILED")
                           print(e)
                           return
     except:
@@ -48,20 +48,20 @@ def update_from_stack_name(session, stack_name, entire_folder):
         print(e)
 
     if len(stack_sum) == 0:
-        print(f"[X] Could not find ANY stack under the account/region provided.")
+        print("[X] Could not find ANY stack under the account/region provided.")
         return
-    
+
     else:
         identified_stack = None
         for stack in stack_sum:
             if stack["StackName"] == stack_name:
                 identified_stack = stack["StackName"]
                 break
-            
+
         if identified_stack is None:
             print(f"[X] Could not find stack: {stack_name} in the account/region provided.")
             return
-        
+
         else:
             print("[-] Stack found. Trying to location website-bucket... ", end="")
             try:
@@ -79,7 +79,7 @@ def update_from_stack_name(session, stack_name, entire_folder):
                         stack_buckets.append(f"\t. {rsc['PhysicalResourceId']}")
 
             print("FAILED")
-            print(f"Could not identify the website bucket. Did you change the default template name?")
+            print("Could not identify the website bucket. Did you change the default template name?")
             if len(stack_buckets)>0:
                 print("The following buckets were found. Run again with --bucket and specify the website-bucket.")
                 print(''.join(stack_buckets))
